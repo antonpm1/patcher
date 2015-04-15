@@ -7,7 +7,7 @@ import getpass
 
 SATELLITE_URL = "http://ansible.antonpm.co.uk/rpc/api"
 SATELLITE_LOGIN = "api-user"
-SATELLITE_PASSWORD = etpass.getpass()
+SATELLITE_PASSWORD = getpass.getpass()
 
 system=sys.argv[1]
 
