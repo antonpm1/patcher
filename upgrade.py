@@ -3,10 +3,11 @@ from datetime import datetime
 import xmlrpclib
 import sys
 import time
+import getpass
 
 SATELLITE_URL = "http://ansible.antonpm.co.uk/rpc/api"
 SATELLITE_LOGIN = "api-user"
-SATELLITE_PASSWORD = "971473fac"
+SATELLITE_PASSWORD = etpass.getpass()
 
 system=sys.argv[1]
 
