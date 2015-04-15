@@ -18,24 +18,32 @@ earliest_occurrence=xmlrpclib.DateTime(now)
 client = xmlrpclib.Server(SATELLITE_URL, verbose=0)
 key = client.auth.login(SATELLITE_LOGIN, SATELLITE_PASSWORD)
 
-def systemSearch(system):
-    sysCall=client.system.searchByName(key, system)
-    for sysID in sysCall:
-	 return sysID.get('id')
+class System:
+
+    def __init__(self, system):
+        self.system=system
+
+    def systemID(self):
+        sysCall=client.system.searchByName(key, self.system)
+        for sysID in sysCall:
+            return sysID.get('id')
+
+    def kernelVer(self):
+        kernVer=client.system.getRunningKernel(key, self.systemID())
+        return kernVer
+
+sysObj=System(system)
 
 def createProfile(system):
-    sysID=systemSearch(system)
-    packageProfile=client.system.createPackageProfile(key, sysID, system + "-" + dateString, "Package profile for " + system + "on " + dateString) 
+    packageProfile=client.system.createPackageProfile(key, sysObj.systemID(), system + "-" + dateString, "Package profile for " + system + "on " + dateString)
 
 def addNote(system):
-    sysID=systemSearch(system)
-    note=client.system.addNote(key, sysID, "Patching", "Server patched on "+dateString)
+    note=client.system.addNote(key, sysObj.systemID(), "Patching", "Server patched on "+dateString)
     
 def sysUpgrade(system):
     packArray=[]
     reboot=0
-    sysID=systemSearch(system)
-    packages=client.system.listLatestUpgradablePackages(key, sysID)
+    packages=client.system.listLatestUpgradablePackages(key, sysObj.systemID())
     for package in packages:
 	packArray.append(package.get('to_package_id'))
 
@@ -45,7 +53,7 @@ def sysUpgrade(system):
 	reboot=0
 
     createProfile(system)
-    install=client.system.schedulePackageInstall(key, sysID, packArray, earliest_occurrence)
+    install=client.system.schedulePackageInstall(key, sysObj.systemID(), packArray, earliest_occurrence)
     print "Scheduled upgrade of "+system
     return install, reboot
 
@@ -59,7 +67,7 @@ def taskStatus(system, taskID, type):
                 return 0
 
 def installAndTrack(system):
-    sysID=systemSearch(system)
+    sysID=sysObj.systemID()
     taskID, reboot=sysUpgrade(system)
     success=0
 
