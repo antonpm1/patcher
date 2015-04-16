@@ -32,6 +32,10 @@ class System:
         kernVer=client.system.getRunningKernel(key, self.systemID())
         return kernVer
 
+    def sysOnline(self):
+	status=client.system.getDetails(key, self.systemID())
+	return status.get('osa_status')
+
 sysObj=System(system)
 
 def createProfile(system):
@@ -67,19 +71,29 @@ def taskStatus(system, taskID, type):
 
 def installAndTrack(system):
     sysID=sysObj.systemID()
+
+    if sysObj.sysOnline() != "online":
+	print "System is not online, exiting upgrade process"
+	exit( 1 )
+
     taskID, reboot=sysUpgrade(system)
     success=0
-
-    print "Sleeping 30 seconds to allow host to pick up action"
-    time.sleep( 30 )
-   
-    if taskStatus(sysID, taskID, "pickup_time") == 1:
-	print "Task picked up successfully"	
+ 
+    count=0
+    while count < 13:
+        if taskStatus(sysID, taskID, "pickup_time") == 1:
+	    print "Task picked up successfully"	
+	    break
+        elif count == 12:
+	    print "Task not picked up after 2 minutes"
+	    exit ( 1 )
+        time.sleep( 10 )
+	count+=1
 
     while True:
 	if taskStatus(sysID, taskID, "failed_count") == 1:
 	    print "Upgrade task has failed!" 
-  	    success=0
+            success=0
 	    break
 	elif taskStatus(sysID, taskID, "successful_count") == 1:
 	    print "Upgrade task has completed!"
