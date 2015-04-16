@@ -51,7 +51,6 @@ def sysUpgrade(system):
 	reboot=1
     else:
 	reboot=0
-
     createProfile(system)
     install=client.system.schedulePackageInstall(key, sysObj.systemID(), packArray, earliest_occurrence)
     print "Scheduled upgrade of "+system
@@ -61,7 +60,7 @@ def taskStatus(system, taskID, type):
     events=client.system.listSystemEvents(key, system)
     for event in events:
         if taskID == event.get("id"):
-            if type in event:
+            if event.get(type) >= 1:
                 return 1
             else:
                 return 0
