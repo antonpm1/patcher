@@ -8,7 +8,7 @@ The aim of this project is to provide a script that will patch a RHEL/Centos/OEL
 
 Run with the following:
 
-./upgrade <servername> 
+./upgrade fqdn_of_server
 
 api-user is set up in Spacewalk and has admin access
 Enter password for api-user (or hard-code into script)
