@@ -4,6 +4,7 @@ import xmlrpclib
 import sys
 import time
 import getpass
+import pprint
 
 SATELLITE_URL = "http://ansible.antonpm.co.uk/rpc/api"
 SATELLITE_LOGIN = "api-user"
@@ -45,29 +46,44 @@ def addNote(system):
     note=client.system.addNote(key, sysObj.systemID(), "Patching", "Server patched on "+dateString)
     
 def sysUpgrade(system):
-    packArray=[]
-    reboot=0
     packages=client.system.listLatestUpgradablePackages(key, sysObj.systemID())
-    for package in packages:
-	packArray.append(package.get('to_package_id'))
+    packDict = dict(((row.get('to_package_id'), row.get('name')) for row in packages))
 
-    if "kernel" in packages:
+    if "kernel" in packDict.values():
 	reboot=1
     else:
 	reboot=0
+  
     createProfile(system)
-    install=client.system.schedulePackageInstall(key, sysObj.systemID(), packArray, earliest_occurrence)
+    install=client.system.schedulePackageInstall(key, sysObj.systemID(), packDict.keys(), earliest_occurrence)
     print "Scheduled upgrade of "+system
     return install, reboot
 
 def taskStatus(system, taskID, type):
     events=client.system.listSystemEvents(key, system)
     for event in events:
-        if taskID == event.get("id"):
-            if event.get(type) >= 1:
-                return 1
+        if taskID == event.get('id'):  
+	    if event.get(type):	
+		return 1	
             else:
                 return 0
+
+def poller(taskID, total, interval, task, type):
+    #total is the timeout in second
+    #interval is the wait time per check
+ 
+    checks=total / interval
+    
+    count=0
+    while count < checks+1:
+        if taskStatus(sysObj.systemID(), taskID, type) == 1:
+            print task + " picked up by host successfully"
+            break
+        elif count == checks:
+            print task + " not picked up by host after " + str(total) + " seconds"
+            exit ( 1 )
+        time.sleep( interval )
+        count+=1    
 
 def installAndTrack(system):
     sysID=sysObj.systemID()
@@ -79,16 +95,7 @@ def installAndTrack(system):
     taskID, reboot=sysUpgrade(system)
     success=0
  
-    count=0
-    while count < 13:
-        if taskStatus(sysID, taskID, "pickup_time") == 1:
-	    print "Task picked up successfully"	
-	    break
-        elif count == 12:
-	    print "Task not picked up after 2 minutes"
-	    exit ( 1 )
-        time.sleep( 10 )
-	count+=1
+    poller(taskID, 120, 10, "Upgrade", "pickup_date") 
 
     while True:
 	if taskStatus(sysID, taskID, "failed_count") == 1:
